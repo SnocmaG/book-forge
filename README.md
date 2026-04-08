@@ -19,14 +19,16 @@ Book Forge transforms source material — documentation folders, knowledge bases
 
 ## Workflow
 
-The skill runs through 6 phases:
+The skill runs through 8 phases:
 
-1. **Input Analysis** — Read and summarize source material via parallel subagents (haiku for speed). Produces a topic map of all extractable concepts grouped by theme.
-2. **Outline & Approval** — Present chapter outline with scope declarations, estimated rule counts, and source mappings. Wait for user sign-off before writing.
-3. **Chapter Writing** — Fan out parallel subagents (sonnet), one per chapter. Each writes a complete, self-contained chapter following the rule template. Hard limit: 6 rules per chapter.
-4. **Assembly & Dedup** — Merge chapters, remove duplicate rules across chapters, verify each chapter stands alone.
-5. **Cross-References & TOC** — Inject rich cross-references between chapters. Build a detailed TOC that lets an agent pick the right chapter without reading the full book.
-6. **Publish** — Upload to Candlekeep via `ck` CLI.
+1. **Input Analysis** -- Read and summarize source material via parallel subagents (haiku for speed). Checks library and marketplace for existing books on the same topic -- flags overlapping or contradicting rules. Produces a topic map of all extractable concepts grouped by theme.
+2. **Outline & Approval** -- Present chapter outline with scope declarations, estimated rule counts, and source mappings. Wait for user sign-off before writing.
+3. **Chapter Writing** -- Fan out parallel subagents (sonnet), one per chapter. Each writes a complete, self-contained chapter following the rule template. Hard limit: 6 rules per chapter.
+3.5. **Quality Gate** -- Validate every chapter for template compliance, rule count, scope adherence, self-containment, and no narrative prose. Chapters that fail get sent back for rewrite.
+4. **Assembly & Dedup** -- Merge chapters, remove duplicate rules across chapters, verify each chapter stands alone.
+5. **Cross-References & TOC** -- Inject rich cross-references between chapters. Build a detailed TOC that lets an agent pick the right chapter without reading the full book.
+5.5. **Smoke Test** -- Pick 2-3 random chapters, generate a realistic sample problem for each, have a haiku agent attempt to solve it using only that chapter's rules. Reports problem, application, and result.
+6. **Publish** -- Upload to Candlekeep via `ck` CLI. Post-publish validation via `ck items toc` confirms page boundaries and TOC integrity.
 
 ## Rule Format
 
@@ -111,7 +113,9 @@ book-forge/
 |-------|-------|-------|---------|
 | Source Reader | 1 (Compile) | haiku | Read and summarize source files in parallel |
 | Chapter Writer | 3 | sonnet | Write one complete chapter per agent |
-| Orchestrator | 2, 4-6 | main | User interaction, dedup, cross-refs, publishing |
+| Quality Gate | 3.5 | haiku | Validate template compliance per chapter |
+| Smoke Test | 5.5 | haiku | Test chapters against realistic sample problems |
+| Orchestrator | 1-2, 4-6 | main | Overlap check, user interaction, dedup, cross-refs, publishing |
 
 ## Installation
 

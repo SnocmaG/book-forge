@@ -158,13 +158,74 @@ Configure retry behavior on every HTTP Request node to handle transient network 
 
 In Candlekeep, each Level 1 heading (`#`) creates a page boundary. Level 2+ headings (`##`, `###`) remain within their parent page. Each chapter uses one `#` heading, so **each chapter = one Candlekeep page**.
 
-**Target: 5-10 rules per chapter (page).**
+**HARD LIMIT: Maximum 6 rules per chapter (page).**
 
 This balances two constraints:
-- **Too few rules per page** (1-3) wastes the user's read rate limit — each `ck items read` call counts against their quota, and small pages mean more reads to cover the same content
-- **Too many rules per page** (15+) bloats the agent's context window with rules that may not be relevant to the current question
+- **Too few rules per page** (1-2) wastes the user's read rate limit -- each `ck items read` call counts against their quota, and small pages mean more reads to cover the same content
+- **Too many rules per page** (7+) bloats the agent's context window with rules that may not be relevant to the current question
 
-If a topic naturally yields more than 10 rules, split it into two chapters with distinct scope declarations. For example, "Error Handling" with 14 rules becomes "Error Handling Foundations" (7 rules) and "Advanced Error Recovery" (7 rules).
+If a topic naturally yields more than 6 rules, split it into two or more chapters with distinct scope declarations. For example, "Error Handling" with 10 rules becomes "Error Handling -- Detection & Logging" (5 rules) and "Error Handling -- Recovery & Retry" (5 rules).
+
+### Example: Marketing Strategy Rule (non-code domain)
+
+```markdown
+### Rule 3.2: Front-Load Value in the First Push Notification
+**Impact:** HIGH
+
+The first push notification a user receives sets their expectation for all future notifications. Lead with a concrete benefit or reward, not a generic welcome message. Users who receive a value-first first push have 2.3x higher 7-day retention than those who receive "Welcome to [App]!"
+
+**Do:**
+```
+"Your first reward is ready -- tap to claim 500 coins before midnight"
+```
+
+**Don't:**
+```
+"Welcome to CashCow! We're glad you're here. Explore the app to find great rewards."
+```
+*Why wrong: Generic welcome copy with no urgency, no specific value, no call to action. User learns that notifications are ignorable.*
+
+**Verify:** Check the onboarding flow's first triggered notification. It must contain a specific reward/action + a time constraint.
+
+**Common mistakes:**
+- Using the app name as the primary hook instead of the reward
+- Sending the welcome push more than 1 hour after install (loses the momentum window)
+- Including "we" language that centers the company instead of the user
+```
+
+### Example: PM Process Rule (non-code domain)
+
+```markdown
+### Rule 1.4: Every Ticket Must Have Acceptance Criteria Before Sprint Commitment
+**Impact:** CRITICAL
+
+A ticket without acceptance criteria is a ticket without a definition of done. Engineers will either guess, over-build, or under-build. Write AC as a checklist of observable outcomes -- what can be verified after implementation, not what the engineer should do during implementation.
+
+**Do:**
+```
+Acceptance Criteria:
+- [ ] User sees a confirmation modal after clicking "Delete"
+- [ ] Modal displays the item name and a 5-second countdown before enabling "Confirm"
+- [ ] Clicking "Cancel" returns to the previous state with no data changes
+- [ ] Deletion is reflected in the list view within 2 seconds without page refresh
+```
+
+**Don't:**
+```
+Acceptance Criteria:
+- Implement delete functionality
+- Add confirmation dialog
+- Make sure it works
+```
+*Why wrong: "Implement" and "make sure it works" are tasks, not outcomes. No one can objectively verify "make sure it works" -- it means different things to different people.*
+
+**Verify:** Before sprint planning, scan every committed ticket for AC. Reject any ticket where AC uses verbs like "implement", "build", "create" instead of observable outcomes.
+
+**Common mistakes:**
+- Writing AC after development starts (defeats the purpose)
+- Confusing AC with technical tasks ("set up the API endpoint" is a task, not a criterion)
+- Using vague quality terms ("fast", "responsive", "clean") without measurable thresholds
+```
 
 ## Writing Style Checklist
 
