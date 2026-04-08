@@ -68,7 +68,18 @@ Sync a book's node/version references against a live data source (e.g., n8n-budd
 
 ## Workflow
 
-The workflow has 8 phases. Phases 1-2 are interactive (require user approval). Phases 3-6 can run autonomously.
+The workflow has 8 phases. Phases 1-2 are interactive (require user approval). Phases 3-6 run autonomously. Phases 3.5 and 5.5 report results to the user but do not pause for approval unless failures are found.
+
+<topic-map>
+### Topic Map Format (shared across all modes)
+
+A topic map is the output of Phase 1. It is a grouped list of concepts organized by theme. Each entry contains:
+- **Theme name** -- the broad topic area (e.g., "Error Handling", "Authentication")
+- **Concepts/rules** -- specific rules or knowledge extractable from this theme
+- **Knowledge type** -- procedural, reference, conceptual, or troubleshooting
+
+The topic map feeds directly into Phase 2's chapter outline. Each theme typically becomes one chapter (or is split if it exceeds 6 rules).
+</topic-map>
 
 <phase id="1" name="input-analysis">
 ### Phase 1: Input Analysis
@@ -121,7 +132,7 @@ Present the user with:
   - Title (precise scope statement, not vague)
   - Scope declaration (what topics this chapter covers)
   - Estimated rule count
-  - Source files mapped to this chapter (compile mode)
+  - Source files mapped to this chapter (compile mode only -- skip in author/append mode)
 
 Wait for user approval before proceeding. The user may merge chapters, split them, reorder, or add/remove topics.
 </phase>
@@ -136,13 +147,13 @@ Fan out subagents in parallel -- one per chapter. This applies to ALL modes (com
 - Strict instructions to stay within scope -- do not write about topics assigned to other chapters
 - HARD LIMIT: Maximum 6 rules per chapter. If more rules are needed, split into multiple chapters with distinct scopes and cross-references linking them.
 
-Each subagent produces a complete chapter in the standard format.
+Each subagent produces a complete chapter in the standard format. Chapter writers should include a preliminary `## Related` section with cross-references they can infer from the chapter outline. Phase 5 will complete and correct these with full cross-book visibility.
 </phase>
 
 <phase id="3.5" name="quality-gate">
 ### Phase 3.5: Quality Gate
 
-Before assembly, validate every chapter produced by Phase 3 subagents. Run a haiku subagent (or regex check) on each chapter to verify:
+Before assembly, validate every chapter produced by Phase 3 subagents. Use regex checks for structural validation (template compliance, rule count). Use a haiku subagent for semantic validation (scope adherence, self-containment, prose detection). Verify:
 
 1. **Template compliance** -- every rule has all required sections: Impact (unless domain opt-out), Do/Don't examples, Verify, Common mistakes
 2. **Rule count** -- chapter does not exceed 6 rules
@@ -158,26 +169,27 @@ If a chapter fails validation, send it back to a sonnet subagent for rewrite wit
 
 Single agent merges all chapters into one document:
 1. Assemble chapters in order
-2. Scan for duplicate or near-duplicate rules across chapters -- remove or merge
+2. Scan for duplicate or near-duplicate rules across chapters -- remove or merge. Two rules are near-duplicates if they prescribe the same action for the same situation, even if worded differently. Merge them into the stronger rule. If they prescribe different actions for the same situation, flag the contradiction to the user.
 3. Verify each chapter is self-contained (an agent reading only Chapter 8 should not need context from Chapter 3)
-4. Add the book summary/metadata section at the top
+4. Add the book summary/metadata section at the top following the `<book-metadata>` format
 </phase>
 
 <phase id="5" name="cross-references-toc">
 ### Phase 5: Cross-References & TOC
 
-After assembly, inject cross-references and build the final TOC:
+After assembly, complete and correct the cross-references that Phase 3 writers drafted, using full cross-book visibility. Then build the final TOC:
 1. For each chapter, scan all other chapters for related topics
-2. Add a "Related" section at the end of each chapter with rich cross-references:
+2. Update the `## Related` section at the end of each chapter -- add missing cross-references, fix incorrect rule number ranges, remove stale references. Use the rich format:
    `For webhook error handling patterns, see Chapter 7: Error Recovery (Rules 7.1-7.5)`
 3. Build the table of contents with chapter titles and page/section indicators
 4. The TOC should be detailed enough for an agent to pick the right chapter from the TOC alone
+5. Write the final assembled book to `/tmp/book-forge-output.md`
 </phase>
 
 <phase id="5.5" name="smoke-test">
 ### Phase 5.5: Smoke Test
 
-Before publishing, verify the book actually works for an agent by running a test read. Pick 2-3 chapters at random and for each:
+Before publishing, verify the book actually works for an agent by running a test read. Pick 2-3 chapters at random (or all chapters if the book has fewer than 3) and for each:
 
 1. **Generate a sample problem** -- a realistic task or question that an agent working in the book's domain would face, relevant to the chapter's scope
 2. **Apply the chapter's rules** -- have a haiku subagent read only that chapter and attempt to solve the problem using the rules
@@ -188,6 +200,10 @@ Report all test results to the user before publishing. For each test, show:
 - **Sample problem:** [the problem statement]
 - **Agent applied:** [what the agent did, which rules it used, how it interpreted them]
 - **Result:** PASS / FAIL + explanation
+
+**PASS/FAIL rubric:**
+- **PASS** = the rules within the chapter's scope are correct, unambiguous, and sufficient to solve the problem. A cross-reference to another chapter for out-of-scope concerns counts as sufficient.
+- **FAIL** = rules are incorrect, contradictory, missing critical detail for an in-scope problem, or ambiguous enough that two agents would interpret them differently.
 
 If any test fails, flag the specific rules that need revision and offer to fix them before publishing.
 </phase>
@@ -217,6 +233,8 @@ Report to the user: book title, chapter count, total rule count, page count, and
 <subagents>
 
 ## Subagent Architecture
+
+Use the Agent tool to spawn subagents. Set the `model` parameter per the table below. Each subagent runs in parallel as an independent agent.
 
 <subagent type="source-reader" phase="1" model="haiku">
 ### Source Reader Agents (Phase 1, Compile mode)
@@ -294,7 +312,11 @@ Read `references/book-format.md` for complete examples. The key elements of ever
 **Common mistakes:**
 - [Pitfall 1]
 - [Pitfall 2]
+
+---
 ```
+
+Separate each rule with a `---` horizontal rule for visual clarity and consistent parsing.
 
 </rule-template>
 
@@ -343,6 +365,8 @@ Every book starts with this header (before the TOC):
 **Rule count:** [total] rules across [N] chapters
 **Last updated:** [date]
 ```
+
+**Important:** The metadata section must use exactly one `#` heading (the book title). The TOC and all metadata fields use `##` or lower. Any additional `#` heading creates an unintended page boundary in Candlekeep.
 
 </book-metadata>
 
